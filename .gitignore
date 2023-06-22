@@ -1,0 +1,16 @@
+*.DS_Store
+*.vscode
+*.env
+data/
+nb*.ipynb
+*.csv
+*.ipynb_checkpoints
+*.pyc
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
