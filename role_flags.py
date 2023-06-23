@@ -1,5 +1,4 @@
 import pandas as pd
-import sqlalchemy
 from datetime import datetime
 import re
 from db import cnx
