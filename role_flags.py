@@ -86,6 +86,6 @@ if __name__ == '__main__':
     print('[{}] Writing to db'.format(datetime.now()))
     roles['generated_at'] = datetime.now()
     write_res = roles.to_sql(
-        'role_scores', cnx, if_exists='replace', index=False, schema='score_v2'
+        'role_flags', cnx, if_exists='replace', index=False, schema='score_v2'
     )
     print('[{}] Done writing to db, rows: {}'.format(datetime.now(), write_res))
