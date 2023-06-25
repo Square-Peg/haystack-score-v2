@@ -1,7 +1,7 @@
 import pandas as pd
 from datetime import datetime
 import re
-from db import cnx
+from context import cnx
 import warnings
 
 # FLAG PATTERNS
