@@ -15,8 +15,11 @@ roles_query = '''
     from roles r
     left join score_v2.role_flags f on f.role_id = r.role_id
     left join companies c on c.company_id = r.company_id
-    left join person_locations l on l.person_id = r.person_id
-    where l.spc_geo = 'SEA';
+    where p.person_id in (
+        select distinct person_id
+        from person_locations
+        where spc_geo = 'SEA'
+        )
 '''
 
 

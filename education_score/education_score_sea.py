@@ -13,7 +13,11 @@ educations_query = '''
     left join score_v2.education_flags f on f.education_id = e.education_id
     left join schools s on s.school_id = e.school_id
     left join person_locations l on l.person_id = e.person_id
-    where l.spc_geo = 'SEA';
+    where p.person_id in (
+        select distinct person_id
+        from person_locations
+        where spc_geo = 'SEA'
+        )
 '''
 
 
