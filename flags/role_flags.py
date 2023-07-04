@@ -14,7 +14,7 @@ stealth_regex = re.compile(
     r'stealth|something new|something exciting|something great', re.IGNORECASE
 )
 irrelevant_role_title_regex = re.compile(
-    r'academy|ambassador|agent|advisor|boutique|case team|club|consult|fellow|festival|film|freelanc|google for startups|self[-\s]?employ|stage|theatre|ment[ee|or]|organi[s|z]er|partner|part[-\s]?time|program|venture|[executive|exec|personal] assistant|(stage|event|production|programme|program|office) manag|agent|leadership',
+    r'academy|ambassador|agent|advisor|boutique|case team|club|consult|fellow|festival|film|freelanc|google for startups|self[-\s]?employ|stage|theatre|ment[ee|or]|organi[s|z]er|partner|part[-\s]?time|program|venture|[executive|exec|personal] assist|(stage|event|production|programme|program|office) manag|agent|leadership',
     re.IGNORECASE,
 )
 irrelevant_role_description_regex = re.compile(
@@ -66,8 +66,12 @@ if __name__ == '__main__':
     # create flags
     print('[{}] Creating flags'.format(datetime.now()))
     roles = raw_roles.copy()
-    roles['is_founder'] = roles['role_title'].str.contains(founder_regex)
-    roles['is_csuite'] = roles['role_title'].str.contains(csuite_regex)
+    roles['is_founder'] = roles['role_title'].str.contains(founder_regex) & ~roles[
+        'role_title'
+    ].str.contains(irrelevant_role_title_regex)
+    roles['is_csuite'] = roles['role_title'].str.contains(csuite_regex) & ~roles[
+        'role_title'
+    ].str.contains(irrelevant_role_title_regex)
     roles['is_stealth'] = roles['role_title'].str.contains(stealth_regex)
     roles['is_irrelevant_role'] = roles['role_title'].str.contains(
         irrelevant_role_title_regex
