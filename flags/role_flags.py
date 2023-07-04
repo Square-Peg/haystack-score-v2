@@ -14,7 +14,7 @@ stealth_regex = re.compile(
     r'stealth|something new|something exciting|something great', re.IGNORECASE
 )
 irrelevant_role_title_regex = re.compile(
-    r'academy|ambassador|agent|advisor|boutique|case team|club|consult|fellow|festival|film|freelanc|google for startups|self[-\s]?employ|stage|theatre|ment[ee|or]|organi[s|z]er|partner|part[-\s]?time|program|venture|[executive|exec|personal] assistant|(stage|event|production|programme|program|office) manag',
+    r'academy|ambassador|agent|advisor|boutique|case team|club|consult|fellow|festival|film|freelanc|google for startups|self[-\s]?employ|stage|theatre|ment[ee|or]|organi[s|z]er|partner|part[-\s]?time|program|venture|[executive|exec|personal] assistant|(stage|event|production|programme|program|office) manag|agent|leadership',
     re.IGNORECASE,
 )
 irrelevant_role_description_regex = re.compile(
