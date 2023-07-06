@@ -1,7 +1,4 @@
 import pandas as pd
-import os
-import sqlalchemy
-
 from context import cnx
 from tqdm import tqdm
 
