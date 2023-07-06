@@ -36,8 +36,9 @@ if __name__ == '__main__':
 
     # write to db
     print('[{}] Writing to db'.format(datetime.now()))
-    traffic['generated_at'] = datetime.now()
-    traffic.to_sql(
+    to_write = traffic[['company_id', 'is_traffic_priority']]
+    to_write['generated_at'] = datetime.now()
+    to_write.to_sql(
         'traffic_flags', conn, if_exists='replace', index=False, schema='score_v2'
     )
     print('[{}] Done writing to db'.format(datetime.now()))
