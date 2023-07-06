@@ -15,7 +15,7 @@ educations_query = '''
     left join person_locations l on l.person_id = e.person_id
     where p.person_id in (
         select distinct person_id
-        from person_locations
+        from score_v2.person_locations
         where spc_geo = 'SEA'
         )
 '''

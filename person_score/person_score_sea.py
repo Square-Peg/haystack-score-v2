@@ -5,7 +5,7 @@ import numpy as np
 
 person_ids_query = '''
     select distinct person_id
-    from person_locations
+    from score_v2.person_locations
     where spc_geo = 'SEA'
 '''
 
@@ -21,7 +21,7 @@ education_scores_query = '''
         left join score_v2.education_scores es on es.education_id = e.education_id
     where p.person_id in (
         select distinct person_id
-        from person_locations
+        from score_v2.person_locations
         where spc_geo = 'SEA'
         )
 '''
@@ -38,7 +38,7 @@ role_scores_query = '''
         left join score_v2.role_scores rs on rs.role_id = r.role_id
     where p.person_id in (
         select distinct person_id
-        from person_locations
+        from score_v2.person_locations
         where spc_geo = 'SEA'
         )
 '''
