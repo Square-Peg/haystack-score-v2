@@ -1,6 +1,7 @@
 import pandas as pd
 from context import cnx
 from tqdm import tqdm
+import sqlalchemy
 
 
 spcGeoMapping = {
