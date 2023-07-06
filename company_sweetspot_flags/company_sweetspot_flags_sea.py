@@ -5,10 +5,12 @@ import re
 
 companies_query = '''
     select distinct 
-        company_id
+        c.company_id
         , c."name" as company_name
         , primary_url as company_primary_url
     from companies c
+    left join score_v2.company_locations cl on cl.company_id = c.company_id
+    where cl.spc_geo = 'SEA'
 '''
 
 execs_query = '''
