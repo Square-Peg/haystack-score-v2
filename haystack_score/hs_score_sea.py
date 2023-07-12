@@ -95,7 +95,7 @@ if __name__ == '__main__':
     print('[{}] Aggregated by company'.format(datetime.now()))
 
     # calculate company score
-    print('[{}] Calculating company score...'.format(datetime.now()))
+    print('[{}] Calculating Haystack score...'.format(datetime.now()))
     company_df['has_nonzero_founder_score'] = np.where(
         company_df['founder_score_mean'] > 0, True, False
     )
@@ -124,11 +124,23 @@ if __name__ == '__main__':
         company_df['hs_score_v2'] * -1,
         company_df['hs_score_v2'],
     )
-    print('[{}] Calculated company score'.format(datetime.now()))
+    print('[{}] Calculated Haystack score'.format(datetime.now()))
+
+    # create metadata columns
+    print('[{}] Creating metadata columns...'.format(datetime.now()))
 
     # write to db
     print('[{}] Writing to db...'.format(datetime.now()))
-    to_write = company_df[['company_id', 'hs_score_v2']]
+    to_write = company_df[
+        [
+            'company_id',
+            'hs_score_v2',
+            'is_sweetspot_company',
+            'is_traffic_priority',
+            'is_irrelevant_hs',
+            'founder_score_mean',
+        ]
+    ]
     to_write['generated_at'] = datetime.now()
     to_write.to_sql(
         'haystack_scores', conn, if_exists='replace', index=False, schema='score_v2'
