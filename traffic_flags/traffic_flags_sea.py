@@ -4,7 +4,8 @@ from context import cnx
 
 traffic_query = '''
 select 
-    t.* 
+    t.*
+    , c.company_id 
     from similarweb_traffic_metrics t
     	left join companies c on t."domain" = c.primary_url
     	left join score_v2.company_locations cl on cl.company_id = c.company_id

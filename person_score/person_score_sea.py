@@ -32,6 +32,7 @@ role_scores_query = '''
         , rs.role_score
         , r.role_title
         , c."name" as company_name
+        , c.company_id
     from persons p
         left join roles r on r.person_id = p.person_id
         left join companies c on c.company_id = r.company_id
@@ -120,7 +121,8 @@ if __name__ == '__main__':
     all_persons = pd.read_sql_query(person_ids_query, conn)
 
     all_persons = all_persons.merge(person_scores, on='person_id', how='left')
-    all_persons_filled = all_persons.score.fillna(0)
+    all_persons_filled = all_persons.copy()
+    all_persons_filled['score'] = all_persons_filled['score'].fillna(0)
 
     # write to db
     print('[{}] Writing to db'.format(datetime.now()))

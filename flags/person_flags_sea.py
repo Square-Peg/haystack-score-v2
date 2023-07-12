@@ -4,7 +4,7 @@ from datetime import datetime
 from context import cnx
 
 # pull all people with their educations
-persons_query = '''
+educations_query = '''
     select 
         p.person_id
         , ef.is_masters
@@ -20,18 +20,24 @@ if __name__ == '__main__':
     # Create the connection
     conn = cnx.Cnx
     # pull all people with their educations
-    raw_persons = pd.read_sql_query(persons_query, conn)
+    raw_educations = pd.read_sql_query(educations_query, conn)
 
-    persons = raw_persons.copy()
+    educations = raw_educations.copy()
 
     # 'currently undergrad' is if the degree_end is between 2023 and 2026, and is not a masters or phd
-    persons['currently_undergrad'] = np.where(
-        (persons['degree_end'] >= datetime(2023, 1, 1))
-        & (persons['degree_end'] <= datetime(2026, 12, 31))
-        & (persons['is_masters'] == 0)
-        & (persons['is_phd'] == 0),
+    educations['currently_undergrad'] = np.where(
+        (educations['degree_end'] >= datetime(2023, 1, 1))
+        & (educations['degree_end'] <= datetime(2026, 12, 31))
+        & (educations['is_masters'] == 0)
+        & (educations['is_phd'] == 0),
         True,
         False,
+    )
+
+    persons = (
+        educations.groupby('person_id')
+        .agg({'currently_undergrad': 'any'})
+        .reset_index()
     )
 
     # write to db
