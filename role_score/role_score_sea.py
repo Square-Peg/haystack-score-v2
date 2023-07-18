@@ -2,7 +2,9 @@ import pandas as pd
 from datetime import datetime
 from context import cnx
 
-COMPANY_LIST_PATH = '/Users/kai/repositories/spc/haystack/haystack-score-v2/role_score/company_list_sea.csv'
+COMPANY_LIST_PATH = (
+    '/Users/kai/repositories/spc/haystack/haystack-score-v2/data/company_list_sea.csv'
+)
 
 roles_query = '''
     select

@@ -2,7 +2,9 @@ import pandas as pd
 from datetime import datetime
 from context import cnx
 
-SCHOOL_LIST_PATH = '/Users/kai/repositories/spc/haystack/haystack-score-v2/education_score/school_list_sea.csv'
+SCHOOL_LIST_PATH = (
+    '/Users/kai/repositories/spc/haystack/haystack-score-v2/data/school_list_sea.csv'
+)
 
 educations_query = '''
     select
