@@ -1,9 +1,11 @@
 import pandas as pd
 from datetime import datetime
 from context import cnx
+from sqlalchemy.orm import sessionmaker
 
-COMPANY_LIST_PATH = (
-    '/Users/kai/repositories/spc/haystack/haystack-score-v2/data/company_list_sea.csv'
+SPC_GEO = 'SEA'
+COMPANY_LIST_PATH = '/Users/kai/repositories/spc/haystack/haystack-score-v2/data/company_list_{}.csv'.format(
+    SPC_GEO.lower()
 )
 
 roles_query = '''
@@ -12,7 +14,12 @@ roles_query = '''
         , r.linkedin_role_description
         , r.role_start
         , r.role_end
-        , f.*
+        , r.role_id
+        , f.is_founder
+        , f.is_csuite
+        , f.is_stealth
+        , f.is_irrelevant_role
+        , f.seniority
         , c."name" as company_name
     from roles r
     left join score_v2.role_flags f on f.role_id = r.role_id
@@ -20,9 +27,29 @@ roles_query = '''
     where r.person_id in (
         select distinct person_id
         from score_v2.person_locations
-        where spc_geo = 'SEA'
+        where spc_geo = '{}'
         )
-'''
+'''.format(
+    SPC_GEO
+)
+
+delete_role_scores_query = '''
+    DO
+    $$
+    BEGIN
+        IF EXISTS (
+            SELECT FROM information_schema.tables 
+            WHERE  table_schema = 'score_v2'
+            AND    table_name   = 'role_scores'
+        )
+        THEN 
+            DELETE FROM score_v2.role_scores WHERE spc_geo = '{}';
+        END IF;
+    END
+    $$
+'''.format(
+    SPC_GEO
+)
 
 
 def calc_role_score(row):
@@ -41,7 +68,7 @@ def calc_role_score(row):
 
 
 if __name__ == '__main__':
-    print('[{}] Starting role_score_sea.py'.format(datetime.now()))
+    print('[{}] Starting role_score_{}.py'.format(datetime.now(), SPC_GEO.lower()))
     conn = cnx.Cnx
 
     # pull roles with flags and company names / domains
@@ -67,9 +94,21 @@ if __name__ == '__main__':
     to_write = roles[['role_id', 'role_score']]
 
     # write to db
+    print('[{}] Deleting old {} role scores'.format(datetime.now(), SPC_GEO))
+    try:
+        session = sessionmaker(bind=conn)()
+        session.execute(delete_role_scores_query)
+        session.commit()
+    except:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
     print('[{}] Writing to db'.format(datetime.now()))
     to_write['generated_at'] = datetime.now()
+    to_write['spc_geo'] = SPC_GEO
     write_res = to_write.to_sql(
-        'role_scores', conn, if_exists='replace', index=False, schema='score_v2'
+        'role_scores', conn, if_exists='append', index=False, schema='score_v2'
     )
     print('[{}] Done writing to db'.format(datetime.now()))
