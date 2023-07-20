@@ -3,6 +3,7 @@ from datetime import datetime
 from context import cnx
 from sqlalchemy.orm import sessionmaker
 
+SPC_GEO = 'SEA'
 
 traffic_query = '''
 select 
@@ -13,8 +14,10 @@ select
     	left join score_v2.company_locations cl on cl.company_id = c.company_id
     where last_3_months_mean > 2500
 	and last_3_months_mean_bucket in ('low', 'med','high')
-    and cl.spc_geo = 'SEA'
-'''
+    and cl.spc_geo = '{}'
+'''.format(
+    SPC_GEO
+)
 
 delete_traffic_query = '''
     DO
@@ -26,14 +29,16 @@ delete_traffic_query = '''
             AND    table_name   = 'traffic_flags'
         )
         THEN 
-            DELETE FROM score_v2.traffic_flags WHERE spc_geo = 'SEA';
+            DELETE FROM score_v2.traffic_flags WHERE spc_geo = '{}';
         END IF;
     END
     $$
-'''
+'''.format(
+    SPC_GEO
+)
 
 if __name__ == '__main__':
-    print('[{}] Starting traffic_flags_sea.py'.format(datetime.now()))
+    print('[{}] Starting traffic_flags_{}.py'.format(datetime.now(), SPC_GEO.lower()))
     conn = cnx.Cnx
     session = sessionmaker(bind=conn)()
 
@@ -56,7 +61,7 @@ if __name__ == '__main__':
     traffic['is_traffic_priority'] = traffic['ranks'] <= 50
 
     # write to db
-    print('[{}] Deleting old SEA data'.format(datetime.now()))
+    print('[{}] Deleting old {} data'.format(datetime.now(), SPC_GEO))
     try:
         session.execute(delete_traffic_query)
         session.commit()
@@ -68,7 +73,7 @@ if __name__ == '__main__':
     print('[{}] Writing to db'.format(datetime.now()))
     to_write = traffic[['company_id', 'is_traffic_priority']]
     to_write['generated_at'] = datetime.now()
-    to_write['spc_geo'] = 'SEA'
+    to_write['spc_geo'] = SPC_GEO
     to_write.to_sql(
         'traffic_flags', conn, if_exists='append', index=False, schema='score_v2'
     )
