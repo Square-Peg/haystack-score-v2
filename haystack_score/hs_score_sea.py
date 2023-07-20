@@ -2,6 +2,9 @@ import pandas as pd
 from datetime import datetime
 from context import cnx
 import numpy as np
+from sqlalchemy.orm import sessionmaker
+
+SPC_GEO = 'SEA'
 
 hs_company_query = '''
     select 
@@ -18,22 +21,30 @@ hs_company_query = '''
         and pf.currently_undergrad = FALSE
         and r.role_start > '2019-01-01'
         and r.role_end is null
-        and cl.spc_geo = 'SEA'
-'''
+        and cl.spc_geo = '{}'
+'''.format(
+    SPC_GEO
+)
 
 sweetspot_query = '''
     select
         *
     from score_v2.company_sweetspot_flags
-    where company_id in ({})
-'''
+    where company_id in (
+    select distinct company_id from score_v2.company_locations where spc_geo = '{}'
+    )
+'''.format(
+    SPC_GEO
+)
 
 traffic_flags_query = '''
     SELECT
         *
     from score_v2.traffic_flags
-    where company_id in ({})
-'''
+    where company_id in (select distinct company_id from score_v2.company_locations where spc_geo = '{}')
+'''.format(
+    SPC_GEO
+)
 
 person_score_query = '''
     select
@@ -41,10 +52,31 @@ person_score_query = '''
         , r.company_id
     from score_v2.person_scores ps
     left join roles r on r.person_id = ps.person_id
-    where r.company_id in ({})
-'''
+    where r.company_id in (select distinct company_id from score_v2.company_locations where spc_geo = '{}')
+'''.format(
+    SPC_GEO
+)
+
+delete_haystack_score_query = '''
+    DO
+    $$
+    BEGIN
+        IF EXISTS (
+            SELECT FROM information_schema.tables 
+            WHERE  table_schema = 'score_v2'
+            AND    table_name   = 'haystack_scores'
+        )
+        THEN 
+            DELETE FROM score_v2.haystack_scores WHERE spc_geo = '{}';
+        END IF;
+    END
+    $$
+'''.format(
+    SPC_GEO
+)
 
 if __name__ == '__main__':
+    print('[{}] Starting hs_score_{}.py...'.format(datetime.now(), SPC_GEO.lower()))
     conn = cnx.Cnx
 
     # get company list
@@ -59,15 +91,9 @@ if __name__ == '__main__':
 
     # get flags and intermediate scores
     print('[{}] Getting flags and intermediate scores...'.format(datetime.now()))
-    sweetspot_flags = pd.read_sql_query(
-        sweetspot_query.format(company_list_string), conn
-    )
-    traffic_flags = pd.read_sql_query(
-        traffic_flags_query.format(company_list_string), conn
-    )
-    person_scores = pd.read_sql_query(
-        person_score_query.format(company_list_string), conn
-    )
+    sweetspot_flags = pd.read_sql_query(sweetspot_query, conn)
+    traffic_flags = pd.read_sql_query(traffic_flags_query, conn)
+    person_scores = pd.read_sql_query(person_score_query, conn)
     print('[{}] Fetched flags and intermediate scores'.format(datetime.now()))
 
     # calculate mean founder scores
@@ -130,6 +156,16 @@ if __name__ == '__main__':
     print('[{}] Creating metadata columns...'.format(datetime.now()))
 
     # write to db
+    print('[{}] Deleting old {} haystack scores...'.format(datetime.now(), SPC_GEO))
+    try:
+        session = sessionmaker(bind=conn)()
+        session.execute(delete_haystack_score_query)
+        session.commit()
+    except:
+        session.rollback()
+        raise
+    finally:
+        session.close()
     print('[{}] Writing to db...'.format(datetime.now()))
     to_write = company_df[
         [
@@ -142,7 +178,8 @@ if __name__ == '__main__':
         ]
     ]
     to_write['generated_at'] = datetime.now()
+    to_write['spc_geo'] = SPC_GEO
     to_write.to_sql(
-        'haystack_scores', conn, if_exists='replace', index=False, schema='score_v2'
+        'haystack_scores', conn, if_exists='append', index=False, schema='score_v2'
     )
     print('[{}] Wrote to db'.format(datetime.now()))
