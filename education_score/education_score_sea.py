@@ -1,26 +1,51 @@
 import pandas as pd
 from datetime import datetime
 from context import cnx
+from sqlalchemy.orm import sessionmaker
 
-SCHOOL_LIST_PATH = (
-    '/Users/kai/repositories/spc/haystack/haystack-score-v2/data/school_list_sea.csv'
+SPC_GEO = 'SEA'
+SCHOOL_LIST_PATH = '/Users/kai/repositories/spc/haystack/haystack-score-v2/data/school_list_{}.csv'.format(
+    SPC_GEO.lower()
 )
+
 
 educations_query = '''
     select
          e.degree_name
-        , f.*
+        , e.education_id
+        , ef.is_phd
+        , ef.is_masters
+        , ef.is_irrelevant
         , s."name" as school_name
     from educations e
-    left join score_v2.education_flags f on f.education_id = e.education_id
+    left join score_v2.education_flags ef on ef.education_id = e.education_id
     left join schools s on s.school_id = e.school_id
-    left join person_locations l on l.person_id = e.person_id
     where e.person_id in (
         select distinct person_id
         from score_v2.person_locations
-        where spc_geo = 'SEA'
+        where spc_geo = '{}'
         )
-'''
+'''.format(
+    SPC_GEO
+)
+
+delete_education_score_query = '''
+    DO
+    $$
+    BEGIN
+        IF EXISTS (
+            SELECT FROM information_schema.tables 
+            WHERE  table_schema = 'score_v2'
+            AND    table_name   = 'education_scores'
+        )
+        THEN 
+            DELETE FROM score_v2.education_scores WHERE spc_geo = '{}';
+        END IF;
+    END
+    $$
+'''.format(
+    SPC_GEO
+)
 
 
 def calc_education_score(row):
@@ -38,7 +63,7 @@ def calc_education_score(row):
 
 
 if __name__ == '__main__':
-    print('[{}] Starting education_score_sea.py'.format(datetime.now()))
+    print('[{}] Starting education_score_{}.py'.format(datetime.now(), SPC_GEO))
     conn = cnx.Cnx
 
     # pull educations with flags and school names
@@ -62,12 +87,24 @@ if __name__ == '__main__':
 
     print('[{}] Calculating education score'.format(datetime.now()))
     educations['education_score'] = educations.apply(calc_education_score, axis=1)
-    to_write = educations[['education_id', 'education_score']]
 
     # write to db
+    print('[{}] Deleting old {} education scores'.format(datetime.now(), SPC_GEO))
+    try:
+        session = sessionmaker(bind=conn)()
+        session.execute(delete_education_score_query)
+        session.commit()
+    except:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
     print('[{}] Writing to db'.format(datetime.now()))
+    to_write = educations[['education_id', 'education_score']]
     to_write['generated_at'] = datetime.now()
+    to_write['spc_geo'] = SPC_GEO
     write_res = to_write.to_sql(
-        'education_scores', conn, if_exists='replace', index=False, schema='score_v2'
+        'education_scores', conn, if_exists='append', index=False, schema='score_v2'
     )
     print('[{}] Done writing to db'.format(datetime.now()))
