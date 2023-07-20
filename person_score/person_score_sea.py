@@ -141,7 +141,7 @@ if __name__ == '__main__':
 
     # make description column into a string
     person_scores['description'] = person_scores['description'].apply(
-        lambda x: ', '.join(x)
+        lambda x: '; '.join(x)
     )
 
     # Join back with all geo persons
