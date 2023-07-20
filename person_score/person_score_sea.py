@@ -2,12 +2,17 @@ import pandas as pd
 from datetime import datetime
 from context import cnx
 import numpy as np
+from sqlalchemy.orm import sessionmaker
+
+SPC_GEO = 'SEA'
 
 person_ids_query = '''
     select distinct person_id
     from score_v2.person_locations
-    where spc_geo = 'SEA'
-'''
+    where spc_geo = '{}'
+'''.format(
+    SPC_GEO
+)
 
 education_scores_query = '''
     select
@@ -22,9 +27,11 @@ education_scores_query = '''
     where p.person_id in (
         select distinct person_id
         from score_v2.person_locations
-        where spc_geo = 'SEA'
+        where spc_geo = '{}'
         )
-'''
+'''.format(
+    SPC_GEO
+)
 
 role_scores_query = '''
     select
@@ -40,12 +47,32 @@ role_scores_query = '''
     where p.person_id in (
         select distinct person_id
         from score_v2.person_locations
-        where spc_geo = 'SEA'
+        where spc_geo = '{}'
         )
-'''
+'''.format(
+    SPC_GEO
+)
+
+delete_person_score_query = '''
+    DO
+    $$
+    BEGIN
+        IF EXISTS (
+            SELECT FROM information_schema.tables 
+            WHERE  table_schema = 'score_v2'
+            AND    table_name   = 'person_scores'
+        )
+        THEN 
+            DELETE FROM score_v2.person_scores WHERE spc_geo = '{}';
+        END IF;
+    END
+    $$
+'''.format(
+    SPC_GEO
+)
 
 if __name__ == '__main__':
-    print('[{}] Starting person_score_sea.py'.format(datetime.now()))
+    print('[{}] Starting person_score_{}.py'.format(datetime.now(), SPC_GEO.lower()))
     conn = cnx.Cnx
 
     # pull data
@@ -117,7 +144,7 @@ if __name__ == '__main__':
         lambda x: ', '.join(x)
     )
 
-    # Join back with all SEA persons
+    # Join back with all geo persons
     all_persons = pd.read_sql_query(person_ids_query, conn)
 
     all_persons = all_persons.merge(person_scores, on='person_id', how='left')
@@ -125,9 +152,21 @@ if __name__ == '__main__':
     all_persons_filled['score'] = all_persons_filled['score'].fillna(0)
 
     # write to db
+    print('[{}] Deleting existing {} person scores'.format(datetime.now(), SPC_GEO))
+    try:
+        session = sessionmaker(bind=conn)()
+        session.execute(delete_person_score_query)
+        session.commit()
+    except:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
     print('[{}] Writing to db'.format(datetime.now()))
     all_persons_filled['generated_at'] = datetime.now()
+    all_persons_filled['spc_geo'] = SPC_GEO
     all_persons_filled.to_sql(
-        'person_scores', conn, if_exists='replace', schema='score_v2', index=False
+        'person_scores', conn, if_exists='append', schema='score_v2', index=False
     )
     print('[{}] Done writing to db'.format(datetime.now()))
