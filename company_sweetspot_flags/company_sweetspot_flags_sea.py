@@ -1,7 +1,10 @@
 import pandas as pd
 from datetime import datetime
 from context import cnx
+from sqlalchemy.orm import sessionmaker
 import re
+
+SPC_GEO = 'SEA'
 
 companies_query = '''
     select distinct 
@@ -10,8 +13,10 @@ companies_query = '''
         , primary_url as company_primary_url
     from companies c
     left join score_v2.company_locations cl on cl.company_id = c.company_id
-    where cl.spc_geo = 'SEA'
-'''
+    where cl.spc_geo = '{}'
+'''.format(
+    SPC_GEO
+)
 
 execs_query = '''
     select
@@ -25,6 +30,23 @@ execs_query = '''
     where rf.seniority = 'exec'
     and r.company_id is not null
 '''
+delete_sweetspot_query = '''
+    DO
+    $$
+    BEGIN
+        IF EXISTS (
+            SELECT FROM information_schema.tables 
+            WHERE  table_schema = 'score_v2'
+            AND    table_name   = 'company_sweetspot_flags'
+        )
+        THEN 
+            DELETE FROM score_v2.company_sweetspot_flags WHERE spc_geo = '{}';
+        END IF;
+    END
+    $$
+'''.format(
+    SPC_GEO
+)
 
 ss_exec_pattern = re.compile(
     r'\bai\b|\bAI\b|artificial intelligence|\bml\b|\bML\b|machine learning|deep learning|neural network|computer vision|natural language processing|\bnlp\b|\bNLP\b'
@@ -34,6 +56,11 @@ ai_pattern = re.compile(r'.*AI\b|\bai\b')
 
 
 if __name__ == '__main__':
+    print(
+        '[{}] Starting company_sweetspot_flags_{}.py'.format(
+            datetime.now(), SPC_GEO.lower()
+        )
+    )
     conn = cnx.Cnx
 
     # Pull data
@@ -94,6 +121,16 @@ if __name__ == '__main__':
     print('[{}] Done creating final sweetspot flag.'.format(datetime.now()))
 
     # write to db
+    print('[{}] Deleting old {} sweetspot flags...'.format(datetime.now(), SPC_GEO))
+    try:
+        session = sessionmaker(bind=conn)()
+        session.execute(delete_sweetspot_query)
+        session.commit()
+    except:
+        session.rollback()
+        raise
+    finally:
+        session.close()
     print('[{}] Writing to db...'.format(datetime.now()))
     to_write = companies_with_execs[
         [
@@ -104,11 +141,12 @@ if __name__ == '__main__':
             'is_sweetspot_company',
         ]
     ]
-
+    to_write['spc_geo'] = SPC_GEO
+    to_write['generated_at'] = datetime.now()
     to_write.to_sql(
         'company_sweetspot_flags',
         conn,
-        if_exists='replace',
+        if_exists='append',
         index=False,
         schema='score_v2',
     )

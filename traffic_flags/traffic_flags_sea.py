@@ -61,7 +61,7 @@ if __name__ == '__main__':
     traffic['is_traffic_priority'] = traffic['ranks'] <= 50
 
     # write to db
-    print('[{}] Deleting old {} data'.format(datetime.now(), SPC_GEO))
+    print('[{}] Deleting old {} traffic data'.format(datetime.now(), SPC_GEO))
     try:
         session.execute(delete_traffic_query)
         session.commit()
