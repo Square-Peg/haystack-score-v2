@@ -18,7 +18,7 @@ irrelevant_role_title_regex = re.compile(
     re.IGNORECASE,
 )
 irrelevant_role_description_regex = re.compile(
-    r'advisor|ambassador|boutique|consult|freelanc|google for startups|self[-\s]?employ|part[-\s]?time|software consult|coach|meet[-\s]?up|our service',
+    r'advisor|ambassador|boutique|consult|freelanc|google for startups|self[-\s]?employ|part[-\s]?time|software consult|coach|meet[-\s]?up|our service|\bwine\b',
     re.IGNORECASE,
 )
 
