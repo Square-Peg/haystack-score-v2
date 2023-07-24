@@ -81,10 +81,17 @@ delete_haystack_score_query = '''
     SPC_GEO
 )
 
+company_metadata_query = '''
+    select
+        company_id
+        , primary_url as company_primary_url
+        , "name" as company_name
+    from companies 
+'''
+
 
 def create_note_string(row):
-    note = '''
-Founder Summaries: {founder_summaries}
+    note = '''Founder Summaries: {founder_summaries}
 
 Founder LinkedIn URLs: {linkedin_urls}
 
@@ -219,10 +226,46 @@ if __name__ == '__main__':
     print('[{}] Calculated Haystack score'.format(datetime.now()))
 
     # create metadata columns
-    print('[{}] Creating metadata columns...'.format(datetime.now()))
+
+    print('[{}] Creating notes...'.format(datetime.now()))
     person_scores_deduped['description'] = person_scores_deduped['description'].replace(
         np.nan, None
     )
+    person_score_with_hs_score = person_scores_deduped.merge(
+        company_df, on='company_id', how='left'
+    )
+    company_metadata = pd.read_sql_query(company_metadata_query, conn)
+    person_score_with_hs_score = person_score_with_hs_score.merge(
+        company_metadata, how='left', on='company_id'
+    )
+    # TODO: this is super scuffed - the notes should be assembled without grouping by all the hs_score columns
+    company_with_notes = (
+        person_score_with_hs_score.groupby(
+            [
+                'company_id',
+                'hs_score_v2',
+                'is_sweetspot_company',
+                'is_traffic_priority',
+                'founder_score_mean',
+                'company_primary_url',
+                'company_name',
+                'is_irrelevant_hs',
+            ],
+            dropna=False,
+        )
+        .agg(
+            {
+                'linkedin_url': lambda x: list(x),
+                'description': lambda x: list(x),
+                'full_name': lambda x: list(x),
+            }
+        )
+        .reset_index()
+    )
+
+    company_with_notes['notes'] = company_with_notes.apply(create_note_string, axis=1)
+    print(company_with_notes.head())
+    company_with_notes_final = company_with_notes.dropna(subset='hs_score_v2')
 
     # write to db
     print('[{}] Deleting old {} haystack scores...'.format(datetime.now(), SPC_GEO))
@@ -236,7 +279,7 @@ if __name__ == '__main__':
     finally:
         session.close()
     print('[{}] Writing to db...'.format(datetime.now()))
-    to_write = company_df[
+    to_write = company_with_notes_final[
         [
             'company_id',
             'hs_score_v2',
@@ -244,6 +287,7 @@ if __name__ == '__main__':
             'is_traffic_priority',
             'is_irrelevant_hs',
             'founder_score_mean',
+            'notes',
         ]
     ]
     to_write['generated_at'] = datetime.now()
