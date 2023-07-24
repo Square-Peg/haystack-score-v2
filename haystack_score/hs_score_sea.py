@@ -5,6 +5,8 @@ import numpy as np
 from sqlalchemy.orm import sessionmaker
 
 SPC_GEO = 'SEA'
+CURRENT_DATE = datetime.now().strftime('%Y%m%d')
+CURRENT_DATE_WITH_DASH = datetime.now().strftime('%Y-%m-%d')
 
 hs_company_query = '''
     select 
@@ -50,8 +52,12 @@ person_score_query = '''
     select
         ps.*
         , r.company_id
+        , p.linkedin_url
+        , p.last_scraped_at
+        , p.full_name
     from score_v2.person_scores ps
     left join roles r on r.person_id = ps.person_id
+    left join persons p on p.person_id = ps.person_id
     where r.company_id in (select distinct company_id from score_v2.company_locations where spc_geo = '{}')
 '''.format(
     SPC_GEO
@@ -74,6 +80,55 @@ delete_haystack_score_query = '''
 '''.format(
     SPC_GEO
 )
+
+
+def create_note_string(row):
+    note = '''
+Founder Summaries: {founder_summaries}
+
+Founder LinkedIn URLs: {linkedin_urls}
+
+------
+
+Haystack Score: {hs_score:.2f}
+Haystack Breakdown:
+    Mean Founder Score: {founder_score:.2f}
+    Is Sweetspot Company: {sweetspot_company}
+    Is Traffic Priority: {traffic_priority}
+
+Haystack Company ID: {haystack_id}
+Date Generated: {date_generated}
+'''
+
+    founder_summaries = ''
+    for full_name, summary in zip(row['full_name'], row['description']):
+        if full_name is not None:
+            founder_summaries += '\n  {}'.format(full_name)
+        if summary is not None:
+            founder_summaries += ': {} '.format(summary)
+    linkedin_urls = ''
+    for li_url in row['linkedin_url']:
+        if li_url is not None:
+            linkedin_urls += '\n  {}'.format(li_url)
+    traffic_prio_string = (
+        str(row['is_traffic_priority'])
+        if pd.notna(row['is_traffic_priority'])
+        else 'No data'
+    )
+
+    note = note.format(
+        founder_summaries=founder_summaries,
+        linkedin_urls=linkedin_urls,
+        hs_score=row['hs_score_v2'],
+        founder_score=row['founder_score_mean'],
+        sweetspot_company=str(row['is_sweetspot_company']),
+        traffic_priority=traffic_prio_string,
+        haystack_id=str(row['company_id']),
+        date_generated=CURRENT_DATE_WITH_DASH,
+    )
+
+    return note
+
 
 if __name__ == '__main__':
     print('[{}] Starting hs_score_{}.py...'.format(datetime.now(), SPC_GEO.lower()))
@@ -99,8 +154,19 @@ if __name__ == '__main__':
     # calculate mean founder scores
     print('[{}] Calculating mean founder scores...'.format(datetime.now()))
     person_scores_deduped = person_scores.drop_duplicates(subset=['person_id'])
+    person_scores_deduped['linkedin_url'] = person_scores_deduped[
+        'linkedin_url'
+    ].str.rstrip('/')
+    person_scores_deduped = person_scores_deduped.sort_values(
+        'last_scraped_at', ascending=False
+    ).drop_duplicates('linkedin_url')
+    person_scores_deduped = person_scores_deduped.drop_duplicates(
+        ['full_name', 'company_id']
+    )
     company_person_scores_mean = (
-        person_scores.groupby(['company_id']).agg({'score': 'mean'}).reset_index()
+        person_scores_deduped.groupby(['company_id'])
+        .agg({'score': 'mean'})
+        .reset_index()
     )
     company_person_scores_mean.columns = ['company_id', 'founder_score_mean']
     print('[{}] Calculated mean founder scores'.format(datetime.now()))
@@ -154,6 +220,9 @@ if __name__ == '__main__':
 
     # create metadata columns
     print('[{}] Creating metadata columns...'.format(datetime.now()))
+    person_scores_deduped['description'] = person_scores_deduped['description'].replace(
+        np.nan, None
+    )
 
     # write to db
     print('[{}] Deleting old {} haystack scores...'.format(datetime.now(), SPC_GEO))
@@ -180,6 +249,6 @@ if __name__ == '__main__':
     to_write['generated_at'] = datetime.now()
     to_write['spc_geo'] = SPC_GEO
     to_write.to_sql(
-        'haystack_scores', conn, if_exists='append', index=False, schema='score_v2'
+        'haystack_scores', conn, if_exists='replace', index=False, schema='score_v2'
     )
     print('[{}] Wrote to db'.format(datetime.now()))
