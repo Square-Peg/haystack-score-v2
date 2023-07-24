@@ -7,6 +7,9 @@ from sqlalchemy.orm import sessionmaker
 SPC_GEO = 'SEA'
 CURRENT_DATE = datetime.now().strftime('%Y%m%d')
 CURRENT_DATE_WITH_DASH = datetime.now().strftime('%Y-%m-%d')
+JUNK_COMPANY_ID_FILEPATH = (
+    '/Users/kai/repositories/spc/haystack/haystack-score-v2/data/junk_company_ids.csv'
+)
 
 hs_company_query = '''
     select 
@@ -267,6 +270,22 @@ if __name__ == '__main__':
     print(company_with_notes.head())
     company_with_notes_final = company_with_notes.dropna(subset='hs_score_v2')
 
+    # exclude junk IDs
+    print(
+        '[{}] Excluding junk companies. Before rows: {}...'.format(
+            datetime.now(), len(company_with_notes_final)
+        )
+    )
+    junk_id_df = pd.read_csv(JUNK_COMPANY_ID_FILEPATH)
+    junk_ids = list(junk_id_df['company_id'])
+    company_with_notes_final = company_with_notes_final[
+        ~company_with_notes_final['company_id'].isin(junk_ids)
+    ]
+    print(
+        '[{}] Done excluding junk companies. Rows: {}'.format(
+            datetime.now(), len(company_with_notes_final)
+        )
+    )
     # write to db
     print('[{}] Deleting old {} haystack scores...'.format(datetime.now(), SPC_GEO))
     try:
