@@ -311,6 +311,6 @@ if __name__ == '__main__':
     to_write['generated_at'] = datetime.now()
     to_write['spc_geo'] = SPC_GEO
     to_write.to_sql(
-        'haystack_scores', conn, if_exists='replace', index=False, schema='score_v2'
+        'haystack_scores', conn, if_exists='append', index=False, schema='score_v2'
     )
     print('[{}] Wrote to db'.format(datetime.now()))
