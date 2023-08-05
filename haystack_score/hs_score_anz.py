@@ -33,22 +33,26 @@ hs_company_query = '''
 
 sweetspot_query = '''
     select
-        *
-    from score_v2.company_sweetspot_flags
+        company_id
+        , is_sweetspot_company
+    from score_v2.company_sweetspot_flags sf
     where company_id in (
     select distinct company_id from score_v2.company_locations where spc_geo = '{}'
     )
+    and spc_geo = '{}'
 '''.format(
-    SPC_GEO
+    SPC_GEO, SPC_GEO
 )
 
 traffic_flags_query = '''
     SELECT
-        *
+        company_id
+        , is_traffic_priority
     from score_v2.traffic_flags
     where company_id in (select distinct company_id from score_v2.company_locations where spc_geo = '{}')
+        and spc_geo = '{}'
 '''.format(
-    SPC_GEO
+    SPC_GEO, SPC_GEO
 )
 
 person_score_query = '''
@@ -111,14 +115,19 @@ Date Generated: {date_generated}
 '''
 
     founder_summaries = ''
-    for full_name, summary in zip(row['full_name'], row['description']):
-        if full_name is not None:
+    full_name_list = row['full_name'] if row['full_name'] is not np.nan else [None]
+    summary_list = row['description'] if row['description'] is not np.nan else [None]
+    linkedin_url_list = (
+        row['linkedin_url'] if row['linkedin_url'] is not np.nan else [None]
+    )
+    for full_name, summary in zip(full_name_list, summary_list):
+        if full_name:
             founder_summaries += '\n  {}'.format(full_name)
-        if summary is not None:
+        if summary:
             founder_summaries += ': {} '.format(summary)
     linkedin_urls = ''
-    for li_url in row['linkedin_url']:
-        if li_url is not None:
+    for li_url in linkedin_url_list:
+        if li_url:
             linkedin_urls += '\n  {}'.format(li_url)
     traffic_prio_string = (
         str(row['is_traffic_priority'])
@@ -234,25 +243,11 @@ if __name__ == '__main__':
     person_scores_deduped['description'] = person_scores_deduped['description'].replace(
         np.nan, None
     )
-    person_score_with_hs_score = person_scores_deduped.merge(
-        company_df, on='company_id', how='left'
-    )
-    company_metadata = pd.read_sql_query(company_metadata_query, conn)
-    person_score_with_hs_score = person_score_with_hs_score.merge(
-        company_metadata, how='left', on='company_id'
-    )
-    # TODO: this is super scuffed - the notes should be assembled without grouping by all the hs_score columns
-    company_with_notes = (
-        person_score_with_hs_score.groupby(
+
+    all_person_metadata = (
+        person_scores_deduped.groupby(
             [
                 'company_id',
-                'hs_score_v2',
-                'is_sweetspot_company',
-                'is_traffic_priority',
-                'founder_score_mean',
-                'company_primary_url',
-                'company_name',
-                'is_irrelevant_hs',
             ],
             dropna=False,
         )
@@ -265,25 +260,29 @@ if __name__ == '__main__':
         )
         .reset_index()
     )
+    company_with_metadata = company_df.merge(
+        all_person_metadata, how='left', on='company_id'
+    )
+    company_with_metadata['notes'] = company_with_metadata.apply(
+        create_note_string, axis=1
+    )
 
-    company_with_notes['notes'] = company_with_notes.apply(create_note_string, axis=1)
-    print(company_with_notes.head())
-    company_with_notes_final = company_with_notes.dropna(subset='hs_score_v2')
+    company_with_metadata = company_with_metadata.dropna(subset='hs_score_v2')
 
     # exclude junk IDs
     print(
         '[{}] Excluding junk companies. Before rows: {}...'.format(
-            datetime.now(), len(company_with_notes_final)
+            datetime.now(), len(company_with_metadata)
         )
     )
     junk_id_df = pd.read_csv(JUNK_COMPANY_ID_FILEPATH)
     junk_ids = list(junk_id_df['company_id'])
-    company_with_notes_final = company_with_notes_final[
-        ~company_with_notes_final['company_id'].isin(junk_ids)
+    company_with_metadata = company_with_metadata[
+        ~company_with_metadata['company_id'].isin(junk_ids)
     ]
     print(
         '[{}] Done excluding junk companies. Rows: {}'.format(
-            datetime.now(), len(company_with_notes_final)
+            datetime.now(), len(company_with_metadata)
         )
     )
     # write to db
@@ -298,7 +297,7 @@ if __name__ == '__main__':
     finally:
         session.close()
     print('[{}] Writing to db...'.format(datetime.now()))
-    to_write = company_with_notes_final[
+    to_write = company_with_metadata[
         [
             'company_id',
             'hs_score_v2',
@@ -312,6 +311,6 @@ if __name__ == '__main__':
     to_write['generated_at'] = datetime.now()
     to_write['spc_geo'] = SPC_GEO
     to_write.to_sql(
-        'haystack_scores', conn, if_exists='replace', index=False, schema='score_v2'
+        'haystack_scores', conn, if_exists='append', index=False, schema='score_v2'
     )
     print('[{}] Wrote to db'.format(datetime.now()))
