@@ -5,6 +5,7 @@ import numpy as np
 
 # INITIALISE CONSTANTS
 SPC_GEO = 'SEA'
+AFFINITY_OWNERS = 'Frederick Ng <fred@squarepegcap.com>'
 JUNK_COMPANY_ID_FILEPATH = (
     '/Users/kai/repositories/spc/haystack/haystack-score-v2/data/junk_company_ids.csv'
 )
@@ -74,7 +75,7 @@ if __name__ == '__main__':
         'Notes',
         'company_id',
     ]
-    affinity_upload_final['Owners'] = 'Frederick Ng <fred@squarepegcap.com>'
+    affinity_upload_final['Owners'] = AFFINITY_OWNERS
     affinity_upload_final['Status'] = 'Haystack Review'
     affinity_upload_final['Referral Category'] = 'Haystack'
     # keep only companies with Organization Website
