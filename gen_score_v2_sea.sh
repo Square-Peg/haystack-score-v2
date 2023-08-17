@@ -28,3 +28,5 @@ echo '[CONSOLE] executing hs_score_sea.py'
 python haystack_score/hs_score_sea.py
 echo '[CONSOLE] executing hs_uploads_sea.py'
 python haystack_score/hs_uploads_sea.py
+echo '[CONSOLE] executing stealth_sea.py'
+python stealth_founders/stealth_sea.py
