@@ -35,6 +35,13 @@ hs_weekly_query = '''
     WEEK_START_DATE_WITH_DASH_STRING, SPC_GEO
 )
 
+past_upload_query = '''
+    select
+        company_id
+    from
+    score_v2.company_upload_tracker
+'''
+
 # SCRIPT
 if __name__ == '__main__':
     print('[{}] Running hs_uploads_{}.py...'.format(datetime.now(), SPC_GEO.lower()))
@@ -63,6 +70,20 @@ if __name__ == '__main__':
         )
     )
 
+    # if companies have been uploaded before, exclude them
+    print(
+        '[{}] Excluding companies that have been uploaded before...'.format(
+            datetime.now()
+        )
+    )
+    past_upload = pd.read_sql_query(past_upload_query, conn)
+    hs_weekly = hs_weekly[~hs_weekly['company_id'].isin(past_upload['company_id'])]
+    print(
+        '[{}] Done excluding companies that have been uploaded before. Rows: {}'.format(
+            datetime.now(), len(hs_weekly)
+        )
+    )
+
     # format afffinity upload
     print('[{}] Formatting affinity upload...'.format(datetime.now()))
     affinity_upload = hs_weekly.sort_values('hs_score_v2', ascending=False).head(40)
@@ -78,6 +99,7 @@ if __name__ == '__main__':
     affinity_upload_final['Owners'] = AFFINITY_OWNERS
     affinity_upload_final['Status'] = 'Haystack Review'
     affinity_upload_final['Referral Category'] = 'Haystack'
+
     # keep only companies with Organization Website
     affinity_upload_final = affinity_upload_final[
         affinity_upload_final['Organization Website'].notna()
