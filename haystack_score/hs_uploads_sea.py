@@ -11,7 +11,8 @@ JUNK_COMPANY_ID_FILEPATH = (
 )
 _UPLOADS_DIR = '/Users/kai/repositories/spc/haystack/haystack-score-v2/_uploads'
 
-current_date = datetime.now()
+# current_date = datetime.now()
+current_date = datetime.now() - timedelta(days=7)
 days_to_subtract = current_date.weekday()
 
 CURRENT_DATE_STRING = current_date.strftime('%Y%m%d')
@@ -87,6 +88,10 @@ if __name__ == '__main__':
     # format afffinity upload
     print('[{}] Formatting affinity upload...'.format(datetime.now()))
     affinity_upload = hs_weekly.sort_values('hs_score_v2', ascending=False).head(40)
+
+    print(affinity_upload)
+    print(affinity_upload.columns)
+
     affinity_upload_final = affinity_upload[
         ['company_name', 'primary_url', 'notes', 'company_id']
     ]
@@ -110,5 +115,25 @@ if __name__ == '__main__':
         + '/affinity_upload_{}_{}.csv'.format(SPC_GEO, CURRENT_DATE_STRING).lower()
     )
     affinity_upload_final.to_csv(affinity_upload_fname, index=False)
+
+    # write tracking to db
+    upload_tracking = affinity_upload.rename(
+        {
+            'primary_url': 'company_domain',
+            'notes': 'affinity_notes',
+            'generated_at': 'uploaded_on',
+        },
+        axis=1,
+    )
+
+    upload_tracking = upload_tracking.drop('is_irrelevant_hs', axis=1)
+
+    write_res = upload_tracking.to_sql(
+        'company_upload_tracker',
+        conn,
+        if_exists='append',
+        index=False,
+        schema='score_v2',
+    )
 
     print('[{}] Done!'.format(datetime.now()))
