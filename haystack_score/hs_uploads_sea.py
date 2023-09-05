@@ -101,9 +101,10 @@ if __name__ == '__main__':
     affinity_upload_final['Referral Category'] = 'Haystack'
 
     # keep only companies with Organization Website
-    affinity_upload_final = affinity_upload_final[
-        affinity_upload_final['Organization Website'].notna()
-    ]
+    # affinity_upload_final = affinity_upload_final[
+    #     affinity_upload_final['Organization Website'].notna()
+    # ]
+
     affinity_upload_fname = (
         _UPLOADS_DIR
         + '/affinity_upload_{}_{}.csv'.format(SPC_GEO, CURRENT_DATE_STRING).lower()
