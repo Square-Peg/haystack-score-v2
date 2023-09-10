@@ -2,6 +2,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 from context import cnx
 import numpy as np
+import sys
 
 # INITIALISE CONSTANTS
 SPC_GEO = 'SEA'
@@ -45,6 +46,17 @@ past_upload_query = '''
 # SCRIPT
 if __name__ == '__main__':
     print('[{}] Running hs_uploads_{}.py...'.format(datetime.now(), SPC_GEO.lower()))
+
+    if len(sys.argv) < 2:
+        print('Provide experiment name.')
+        sys.exit(1)
+
+    experiment_name = sys.argv[1]
+
+    if experiment_name != 'prod':
+        print('Not prod run, exiting.')
+        sys.exit(0)
+
     print('[{}] Current date: {}'.format(datetime.now(), CURRENT_DATE_STRING))
     print(
         '[{}] **Week start date**: {}'.format(

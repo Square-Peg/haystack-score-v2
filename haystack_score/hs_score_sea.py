@@ -1,7 +1,9 @@
 import pandas as pd
+import numpy as np
+import sys
+
 from datetime import datetime
 from context import cnx
-import numpy as np
 from sqlalchemy.orm import sessionmaker
 
 SPC_GEO = 'SEA'
@@ -70,7 +72,7 @@ person_score_query = '''
     SPC_GEO
 )
 
-delete_haystack_score_query = '''
+delete_haystack_score_query_prod = '''
     DO
     $$
     BEGIN
@@ -81,6 +83,24 @@ delete_haystack_score_query = '''
         )
         THEN 
             DELETE FROM score_v2.haystack_scores WHERE spc_geo = '{}';
+        END IF;
+    END
+    $$
+'''.format(
+    SPC_GEO
+)
+
+delete_haystack_score_query_test = '''
+    DO
+    $$
+    BEGIN
+        IF EXISTS (
+            SELECT FROM information_schema.tables 
+            WHERE  table_schema = 'score_v2'
+            AND    table_name   = 'haystack_scores_test'
+        )
+        THEN 
+            DELETE FROM score_v2.haystack_scores_test WHERE spc_geo = '{}';
         END IF;
     END
     $$
@@ -152,6 +172,14 @@ Date Generated: {date_generated}
 if __name__ == '__main__':
     print('[{}] Starting hs_score_{}.py...'.format(datetime.now(), SPC_GEO.lower()))
     conn = cnx.Cnx
+    if len(sys.argv) < 2:
+        print('Provide experiment name.')
+        sys.exit(1)
+
+    experiment_name = sys.argv[1]
+
+    if experiment_name == 'prod':
+        print('**NOTICE** Running usual prod script.')
 
     # get company list
     print('[{}] Getting company list...'.format(datetime.now()))
@@ -285,32 +313,101 @@ if __name__ == '__main__':
             datetime.now(), len(company_with_metadata)
         )
     )
+
     # write to db
-    print('[{}] Deleting old {} haystack scores...'.format(datetime.now(), SPC_GEO))
-    try:
-        session = sessionmaker(bind=conn)()
-        session.execute(delete_haystack_score_query)
-        session.commit()
-    except:
-        session.rollback()
-        raise
-    finally:
-        session.close()
-    print('[{}] Writing to db...'.format(datetime.now()))
-    to_write = company_with_metadata[
-        [
-            'company_id',
-            'hs_score_v2',
-            'is_sweetspot_company',
-            'is_traffic_priority',
-            'is_irrelevant_hs',
-            'founder_score_mean',
-            'notes',
+
+    if experiment_name == 'prod':
+        # write to main table
+        print('[{}] Deleting old {} haystack scores...'.format(datetime.now(), SPC_GEO))
+        try:
+            session = sessionmaker(bind=conn)()
+            session.execute(delete_haystack_score_query_prod)
+            session.commit()
+        except:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+        print('[{}] Writing to db...'.format(datetime.now()))
+        to_write = company_with_metadata[
+            [
+                'company_id',
+                'hs_score_v2',
+                'is_sweetspot_company',
+                'is_traffic_priority',
+                'is_irrelevant_hs',
+                'founder_score_mean',
+                'notes',
+            ]
         ]
-    ]
-    to_write['generated_at'] = datetime.now()
-    to_write['spc_geo'] = SPC_GEO
-    to_write.to_sql(
-        'haystack_scores', conn, if_exists='append', index=False, schema='score_v2'
-    )
-    print('[{}] Wrote to db'.format(datetime.now()))
+        to_write['generated_at'] = datetime.now()
+        to_write['spc_geo'] = SPC_GEO
+        to_write.to_sql(
+            'haystack_scores', conn, if_exists='append', index=False, schema='score_v2'
+        )
+        print('[{}] Wrote to db'.format(datetime.now()))
+
+    elif experiment_name == 'test':
+        # write to test table
+        print(
+            '[{}] Deleting old {} test haystack scores...'.format(
+                datetime.now(), SPC_GEO
+            )
+        )
+        try:
+            session = sessionmaker(bind=conn)()
+            session.execute(delete_haystack_score_query_test)
+            session.commit()
+        except:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+        print('[{}] Writing to db...'.format(datetime.now()))
+        to_write = company_with_metadata[
+            [
+                'company_id',
+                'hs_score_v2',
+                'is_sweetspot_company',
+                'is_traffic_priority',
+                'is_irrelevant_hs',
+                'founder_score_mean',
+                'notes',
+            ]
+        ]
+        to_write['generated_at'] = datetime.now()
+        to_write['spc_geo'] = SPC_GEO
+        to_write.to_sql(
+            'haystack_scores_test',
+            conn,
+            if_exists='append',
+            index=False,
+            schema='score_v2',
+        )
+        print('[{}] Wrote to db'.format(datetime.now()))
+
+    else:
+        # write to experiment table
+        print('[{}] Writing to db...'.format(datetime.now()))
+        to_write = company_with_metadata[
+            [
+                'company_id',
+                'hs_score_v2',
+                'is_sweetspot_company',
+                'is_traffic_priority',
+                'is_irrelevant_hs',
+                'founder_score_mean',
+                'notes',
+            ]
+        ]
+        to_write['generated_at'] = datetime.now()
+        to_write['spc_geo'] = SPC_GEO
+        to_write['experiment_name'] = experiment_name
+        to_write.to_sql(
+            'haystack_scores_experiment',
+            conn,
+            if_exists='append',
+            index=False,
+            schema='score_v2',
+        )
+        print('[{}] Wrote to db'.format(datetime.now()))
