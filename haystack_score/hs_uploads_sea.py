@@ -11,8 +11,7 @@ JUNK_COMPANY_ID_FILEPATH = (
 )
 _UPLOADS_DIR = '/Users/kai/repositories/spc/haystack/haystack-score-v2/_uploads'
 
-# current_date = datetime.now()
-current_date = datetime.now() - timedelta(days=7)
+current_date = datetime.now()
 days_to_subtract = current_date.weekday()
 
 CURRENT_DATE_STRING = current_date.strftime('%Y%m%d')

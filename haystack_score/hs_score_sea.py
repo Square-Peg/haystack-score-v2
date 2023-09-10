@@ -24,7 +24,7 @@ hs_company_query = '''
     where 
         rf.is_founder = TRUE
         and pf.currently_undergrad = FALSE
-        and r.role_start > '2019-01-01'
+        and r.role_start > '2018-01-01'
         and r.role_end is null
         and cl.spc_geo = '{}'
 '''.format(
