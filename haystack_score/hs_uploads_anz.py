@@ -2,6 +2,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 from context import cnx
 import numpy as np
+import sys
 
 # INITIALISE CONSTANTS
 SPC_GEO = 'ANZ'
@@ -35,9 +36,27 @@ hs_weekly_query = '''
     WEEK_START_DATE_WITH_DASH_STRING, SPC_GEO
 )
 
+past_upload_query = '''
+    select
+        company_id
+    from
+    score_v2.company_upload_tracker
+'''
+
 # SCRIPT
 if __name__ == '__main__':
     print('[{}] Running hs_uploads_{}.py...'.format(datetime.now(), SPC_GEO.lower()))
+
+    if len(sys.argv) < 2:
+        print('Provide experiment name.')
+        sys.exit(1)
+
+    experiment_name = sys.argv[1]
+
+    if experiment_name != 'prod':
+        print('Not prod run, exiting.')
+        sys.exit(0)
+
     print('[{}] Current date: {}'.format(datetime.now(), CURRENT_DATE_STRING))
     print(
         '[{}] **Week start date**: {}'.format(
@@ -63,9 +82,27 @@ if __name__ == '__main__':
         )
     )
 
+    # if companies have been uploaded before, exclude them
+    print(
+        '[{}] Excluding companies that have been uploaded before...'.format(
+            datetime.now()
+        )
+    )
+    past_upload = pd.read_sql_query(past_upload_query, conn)
+    hs_weekly = hs_weekly[~hs_weekly['company_id'].isin(past_upload['company_id'])]
+    print(
+        '[{}] Done excluding companies that have been uploaded before. Rows: {}'.format(
+            datetime.now(), len(hs_weekly)
+        )
+    )
+
     # format afffinity upload
     print('[{}] Formatting affinity upload...'.format(datetime.now()))
     affinity_upload = hs_weekly.sort_values('hs_score_v2', ascending=False).head(40)
+
+    print(affinity_upload)
+    print(affinity_upload.columns)
+
     affinity_upload_final = affinity_upload[
         ['company_name', 'primary_url', 'notes', 'company_id']
     ]
@@ -78,14 +115,36 @@ if __name__ == '__main__':
     affinity_upload_final['Owners'] = AFFINITY_OWNERS
     affinity_upload_final['Status'] = 'Haystack Review'
     affinity_upload_final['Referral Category'] = 'Haystack'
+
     # keep only companies with Organization Website
-    affinity_upload_final = affinity_upload_final[
-        affinity_upload_final['Organization Website'].notna()
-    ]
+    # affinity_upload_final = affinity_upload_final[
+    #     affinity_upload_final['Organization Website'].notna()
+    # ]
+
     affinity_upload_fname = (
         _UPLOADS_DIR
         + '/affinity_upload_{}_{}.csv'.format(SPC_GEO, CURRENT_DATE_STRING).lower()
     )
     affinity_upload_final.to_csv(affinity_upload_fname, index=False)
+
+    # write tracking to db
+    upload_tracking = affinity_upload.rename(
+        {
+            'primary_url': 'company_domain',
+            'notes': 'affinity_notes',
+            'generated_at': 'uploaded_on',
+        },
+        axis=1,
+    )
+
+    upload_tracking = upload_tracking.drop('is_irrelevant_hs', axis=1)
+
+    write_res = upload_tracking.to_sql(
+        'company_upload_tracker',
+        conn,
+        if_exists='append',
+        index=False,
+        schema='score_v2',
+    )
 
     print('[{}] Done!'.format(datetime.now()))
