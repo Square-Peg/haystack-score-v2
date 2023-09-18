@@ -26,7 +26,7 @@ hs_company_query = '''
     where 
         rf.is_founder = TRUE
         and pf.currently_undergrad = FALSE
-        and r.role_start > '2018-01-01'
+        and r.role_start > '2020-01-01'
         and r.role_end is null
         and cl.spc_geo = '{}'
 '''.format(
@@ -67,7 +67,9 @@ person_score_query = '''
     from score_v2.person_scores ps
     left join roles r on r.person_id = ps.person_id
     left join persons p on p.person_id = ps.person_id
+    left join score_v2.role_flags rf on rf.role_id = r.role_id
     where r.company_id in (select distinct company_id from score_v2.company_locations where spc_geo = '{}')
+    and rf.is_founder = TRUE
 '''.format(
     SPC_GEO
 )
