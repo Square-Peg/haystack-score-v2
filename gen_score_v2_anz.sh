@@ -1,4 +1,10 @@
 #!/bin/bash
+if [ $# -eq 0 ]
+  then
+    echo 'No arguments supplied'
+    exit 1
+fi
+echo '[CONSOLE] running with arguments: ' $1
 echo '[CONSOLE] activating sandbox.'
 eval "$(conda shell.bash hook)"
 conda activate spc-sandbox
@@ -13,8 +19,8 @@ python education_score/education_score_anz.py
 echo '[CONSOLE] executing person_score_anz.py'
 python person_score/person_score_anz.py
 echo '[CONSOLE] executing hs_score_anz.py'
-python haystack_score/hs_score_anz.py
+python haystack_score/hs_score_anz.py $1
 echo '[CONSOLE] executing hs_uploads_anz.py'
-python haystack_score/hs_uploads_anz.py
+python haystack_score/hs_uploads_anz.py $1
 echo '[CONSOLE] executing stealth_anz.py'
 python stealth_founders/stealth_anz.py
