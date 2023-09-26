@@ -2,13 +2,15 @@ import pandas as pd
 import numpy as np
 import sys
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from context import cnx
 from sqlalchemy.orm import sessionmaker
 
+current_date = datetime.now()
+
 SPC_GEO = 'ISR'
-CURRENT_DATE = datetime.now().strftime('%Y%m%d')
-CURRENT_DATE_WITH_DASH = datetime.now().strftime('%Y-%m-%d')
+CURRENT_DATE = current_date.strftime('%Y%m%d')
+CURRENT_DATE_WITH_DASH = current_date.strftime('%Y-%m-%d')
 JUNK_COMPANY_ID_FILEPATH = (
     '/Users/kai/repositories/spc/haystack/haystack-score-v2/data/junk_company_ids.csv'
 )
