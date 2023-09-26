@@ -6,7 +6,7 @@ import warnings
 
 # FLAG PATTERNS
 irrelevant_name_regex = re.compile(
-    r'academy|agency|australia|accelerat|\bangel\b|boutique|capital|club|chapter|consult|digital|festival|film|freelanc|\blaw\b|lawyer|legal|litigat|management|marketing|media|partner|project|studio|scholar|start[-\s]?up|student|self[-\s]?employ|\bwine\b|venture|&',
+    r'academy|agency|australia|accelerat|\bangel\b|boutique|capital|club|chapter|consult|digital|festival|film|freelanc|\blaw\b|lawyer|legal|litigat|management|marketing|media|partner|project|studio|scholar|start[-\s]?up|student|self[-\s]?employ|\bwine\b|venture|&|whiskey|whisky',
     re.IGNORECASE,
 )
 irrelevant_domain_regex = re.compile(r'.gov|studio', re.IGNORECASE)
