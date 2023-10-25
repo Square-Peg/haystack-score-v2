@@ -13,6 +13,7 @@ JUNK_COMPANY_ID_FILEPATH = (
 _UPLOADS_DIR = '/Users/kai/repositories/spc/haystack/haystack-score-v2/_uploads'
 
 current_date = datetime.now()
+current_date = datetime.now() - timedelta(days=4)
 days_to_subtract = current_date.weekday()
 
 CURRENT_DATE_STRING = current_date.strftime('%Y%m%d')
@@ -30,6 +31,7 @@ hs_weekly_query = '''
     score_v2.haystack_scores hs
     left join companies c on c.company_id = hs.company_id
     where hs.hs_score_v2 is not null
+    and hs.hs_score_v2 > 2
     and c.last_scraped_at > '{}'
     and hs.spc_geo = '{}'
 '''.format(
