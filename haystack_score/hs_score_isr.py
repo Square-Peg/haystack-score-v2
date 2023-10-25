@@ -6,11 +6,9 @@ from datetime import datetime, timedelta
 from context import cnx
 from sqlalchemy.orm import sessionmaker
 
-current_date = datetime.now()
-
 SPC_GEO = 'ISR'
-CURRENT_DATE = current_date.strftime('%Y%m%d')
-CURRENT_DATE_WITH_DASH = current_date.strftime('%Y-%m-%d')
+CURRENT_DATE = datetime.now().strftime('%Y%m%d')
+CURRENT_DATE_WITH_DASH = datetime.now().strftime('%Y-%m-%d')
 JUNK_COMPANY_ID_FILEPATH = (
     '/Users/kai/repositories/spc/haystack/haystack-score-v2/data/junk_company_ids.csv'
 )
@@ -28,7 +26,7 @@ hs_company_query = '''
     where 
         rf.is_founder = TRUE
         and pf.currently_undergrad = FALSE
-        and r.role_start > '2020-01-01'
+        and r.role_start > '2019-01-01'
         and r.role_end is null
         and cl.spc_geo = '{}'
 '''.format(
