@@ -12,7 +12,8 @@ _EXCLUSION_DIR = (
     '/Users/kai/repositories/spc/haystack/haystack-score-v2/_stealth_exclusions'
 )
 
-current_date = datetime.now()
+# current_date = datetime.now()
+current_date = datetime.now() - timedelta(days=4)
 days_to_subtract = current_date.weekday()
 
 CURRENT_DATE_STRING = current_date.strftime('%Y%m%d')

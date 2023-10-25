@@ -5,8 +5,8 @@ import numpy as np
 from sqlalchemy.orm import sessionmaker
 
 # INITIALISE CONSTANTS
-SPC_GEO = 'SEA'
-AFFINITY_OWNERS = 'Frederick Ng <fred@squarepegcap.com>'
+SPC_GEO = 'ANZ'
+AFFINITY_OWNERS = 'Casey Flint <casey@squarepegcap.com>'
 _UPLOADS_DIR = '/Users/kai/repositories/spc/haystack/haystack-score-v2/_stealth_uploads'
 _EXCLUSION_DIR = (
     '/Users/kai/repositories/spc/haystack/haystack-score-v2/_stealth_exclusions'

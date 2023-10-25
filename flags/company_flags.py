@@ -6,10 +6,17 @@ import warnings
 
 # FLAG PATTERNS
 irrelevant_name_regex = re.compile(
-    r'academy|agency|australia|accelerat|\bangel\b|boutique|capital|club|chapter|consult|digital|festival|film|freelanc|\blaw\b|lawyer|legal|litigat|management|marketing|media|partner|project|studio|scholar|start[-\s]?up|student|self[-\s]?employ|\bwine\b|venture|&|whiskey|whisky',
+    r'academy|agency|australia|accelerat|\bangel\b|boutique|capital|club|chapter|consult|digital|festival|film|freelanc|\blaw\b|lawyer|legal|litigat|management|marketing|media|partner|project|studio|scholar|start[-\s]?up|student|self[-\s]?employ|\bwine\b|venture|&|whiskey|whisky|non[-\s]?profit|podcast|\bngo\b|\bphilanthro\b|key opinion|influencer|affiliate',
     re.IGNORECASE,
 )
-irrelevant_domain_regex = re.compile(r'.gov|studio', re.IGNORECASE)
+irrelevant_domain_regex = re.compile(r'.gov|studio|substack', re.IGNORECASE)
+irrelevant_industry_regex = re.compile(
+    r'Marketing Services|Non-profit Organizations|Professional Training and Coaching',
+    re.IGNORECASE,
+)
+
+## nonprofit podcast
+
 
 if __name__ == '__main__':
     cnx = cnx.Cnx
@@ -22,6 +29,7 @@ if __name__ == '__main__':
             company_id
             , name as company_name
             , primary_url as company_primary_url
+            , industry as company_industry
         from companies;
         '''
     raw_companies = pd.read_sql_query(raw_companies_query, cnx)
@@ -34,9 +42,11 @@ if __name__ == '__main__':
     # create flags
     print('[{}] Creating flags'.format(datetime.now()))
     companies = raw_companies.copy()
-    companies['is_irrelevant'] = companies['company_name'].str.contains(
-        irrelevant_name_regex
-    ) | companies['company_primary_url'].str.contains(irrelevant_domain_regex)
+    companies['is_irrelevant'] = (
+        companies['company_name'].str.contains(irrelevant_name_regex)
+        | companies['company_primary_url'].str.contains(irrelevant_domain_regex)
+        | companies['company_industry'].str.contains(irrelevant_industry_regex)
+    )
     print('[{}] Done creating flags'.format(datetime.now()))
 
     # write to db
