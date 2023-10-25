@@ -25,12 +25,23 @@ if __name__ == '__main__':
     # pull all companies
     print('[{}] Pulling companies'.format(datetime.now()))
     raw_companies_query = '''
+    with founder_roles as (
         select
             company_id
-            , name as company_name
-            , primary_url as company_primary_url
-            , industry as company_industry
-        from companies;
+            , bool_or(is_irrelevant_role) as has_irrelevant_founder
+        from score_v2.role_flags rf 
+        left join roles r on r.role_id = rf.role_id
+        where (rf.is_founder = TRUE or rf.is_csuite = TRUE)
+        group by 1
+    )
+    select
+        c.company_id
+        , name as company_name
+        , primary_url as company_primary_url
+        , industry as company_industry
+        , has_irrelevant_founder
+    from companies c
+    left join founder_roles fr on fr.company_id = c.company_id;
         '''
     raw_companies = pd.read_sql_query(raw_companies_query, cnx)
     print(
@@ -46,6 +57,7 @@ if __name__ == '__main__':
         companies['company_name'].str.contains(irrelevant_name_regex)
         | companies['company_primary_url'].str.contains(irrelevant_domain_regex)
         | companies['company_industry'].str.contains(irrelevant_industry_regex)
+        | companies['has_irrelevant_founder']
     )
     print('[{}] Done creating flags'.format(datetime.now()))
 
