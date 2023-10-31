@@ -6,6 +6,7 @@ nb*.ipynb
 *.csv
 *.ipynb_checkpoints
 *.pyc
+report.html
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
