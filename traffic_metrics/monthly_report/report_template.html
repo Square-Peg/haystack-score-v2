@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Re-engagement Report ({{ date }})</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+        }
+        th {
+            text-align: left;
+            cursor: pointer;
+        }
+        .chart-cell {
+            width: 30%;
+        }
+        .chart {
+            display: none;
+        }
+        .show-chart .chart {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <h1>Re-engagement Report ({{ date }})</h1>
+    <div>
+        <label for="spc-geo-select">Filter by SPC Geo:</label>
+        <select id="spc-geo-select" onchange="filterTable()">
+            <option value="all">All</option>
+            <option value="isr">ISR</option>
+            <option value="sea">SEA</option>
+            <option value="anz">ANZ</option>
+        </select>
+    </div>
+    <br>
+    <div>
+        <label for="mean-bucket-select">Filter by Traffic Bucket:</label>
+        <select id="mean-bucket-select" onchange="filterTable()">
+            <option value="all">All</option>
+            <option value="high">High (p90)</option>
+            <option value="med">Medium (p70-p90)</option>
+            <option value="low">Low (p50-p70)</option>
+            <option value="na">N/A (p0-p50)</option>
+        </select>
+    </div>
+    <br>
+    <div>
+        <label for="high-priority-check">Show only high priority companies</label>
+        <input type="checkbox" id="high-priority-check" onchange="filterTable()">
+    </div>
+    <br>
+    <div>
+        <button onclick="expandAll()">Expand All</button>
+        <button onclick="collapseAll()">Collapse All</button>
+    </div>
+    <br>
+    <table id="reportTable">
+        <thead>
+            <tr>
+                <th onclick="sortTable(0)">SPC Geo<span id="sort-icon-0" class="sort-icon"></span></th>
+                <th onclick="sortTable(1)">Status<span id="sort-icon-1" class="sort-icon"></span></th>
+                <th onclick="sortTable(2)">Time in current status<span id="sort-icon-2" class="sort-icon"></span></th>
+                <th>Affinity</th>
+                <th onclick="sortTable(4)">Domain<span id="sort-icon-4" class="sort-icon"></span></th>
+                <th onclick="sortTable(5)">Total Visits (last 24 months)<span id="sort-icon-5" class="sort-icon"></span></th>
+                <th onclick="sortTable(6)">Mean Monthly Visits (last 24 months)<span id="sort-icon-6" class="sort-icon"></span></th>
+                <th onclick="sortTable(7)">Mean Monthly Visits (last 3 months)<span id="sort-icon-7" class="sort-icon"></span></th>
+                <th onclick="sortTable(8)">MoM % Growth<span id="sort-icon-8" class="sort-icon"></span></th>
+                <th onclick="sortTable(9)">QoQ % Growth<span id="sort-icon-9" class="sort-icon"></span></th>
+                <th onclick="sortTable(10)">YoY % Growth<span id="sort-icon-10" class="sort-icon"></span></th>
+                <th onclick="sortTable(11)">Exponential Curve?<span id="sort-icon-11" class="sort-icon"></span></th>
+                <th onclick="sortTable(12)">r-squared<span id="sort-icon-12" class="sort-icon"></span></th>
+                <th onclick="sortTable(13)">Linear Curve?<span id="sort-icon-13" class="sort-icon"></span></th>
+                <th onclick="sortTable(14)">p-value<span id="sort-icon-14" class="sort-icon"></span></th>
+                <th onclick="sortTable(15)">Traffic Bucket<span id="sort-icon-15" class="sort-icon"></span></th>
+                <th onclick="sortTable(16)">High Priority?<span id="sort-icon-16" class="sort-icon"></span></th>
+
+                <th class="chart-cell">Chart</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in data.iterrows() %}
+            <tr>
+                <td data-sort-value="{{ row[1]['spc_geo'] }}">{{ row[1]['spc_geo'] }}</td>
+                <td data-sort-value="{{ row[1]['status'] }}">{{ row[1]['status'] }}</td>
+                <td data-sort-value="{{ row[1]['time_in_current_status'] }}">{{ row[1]['time_in_current_status'] }}</td>
+                <td>
+                    {% if row[1]['affinity_organisation_id'] %}
+                        <a href="https://squarepegvc.affinity.co/companies/{{ row[1]['affinity_organisation_id'] }}" target="_blank">Affinity</a>
+                    {% endif %}
+                </td>
+                <td data-sort-value="{{ row[1]['domain'] }}"><a href="http://{{ row[1]['domain'] }}" target="_blank">{{ row[1]['domain'] }}</a></td>
+                <td data-sort-value="{{ row[1]['last_24_months_total'] }}">{{ row[1]['last_24_months_total'] | formatNumber }}</td>
+                <td data-sort-value="{{ row[1]['last_24_months_mean'] }}">{{ row[1]['last_24_months_mean'] | formatNumber }}</td>
+                <td data-sort-value="{{ row[1]['last_3_months_mean'] }}">{{ row[1]['last_3_months_mean'] | formatNumber }}</td>
+                <td data-sort-value="{{ row[1]['mom_perc_growth'] }}">{{ row[1]['mom_perc_growth'] | formatNumber }}</td>
+                <td data-sort-value="{{ row[1]['qoq_perc_growth'] }}">{{ row[1]['qoq_perc_growth'] | formatNumber }}</td>
+                <td data-sort-value="{{ row[1]['yoy_perc_growth'] }}">{{ row[1]['yoy_perc_growth'] | formatNumber }}</td>
+                <td data-sort-value="{{ row[1]['exp_curve'] }}">{{ row[1]['exp_curve'] }}</td>
+                <td data-sort-value="{{ row[1]['r_squared'] }}">{{ row[1]['r_squared'] }}</td>
+                <td data-sort-value="{{ row[1]['lin_curve'] }}">{{ row[1]['lin_curve'] }}</td>
+                <td data-sort-value="{{ row[1]['p_value'] }}">{{ row[1]['p_value'] }}</td>
+                <td data-sort-value="{{ row[1]['last_3_months_mean_bucket'] }}">{{ row[1]['last_3_months_mean_bucket'] }}</td>
+                <td data-sort-value="{{ row[1]['high_priority'] }}">{{ row[1]['high_priority'] }}</td>
+
+                <td class="chart-cell" id="chart-{{ loop.index0 }}">
+                    <img class="chart" src="./data/charts/{{ row[1]['domain'] }}.png">
+                </td>
+                <td>
+                    <button onclick="toggleChart({{ loop.index0 }})">Toggle Chart</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+<script src="report_script.js"></script>
+</html>
