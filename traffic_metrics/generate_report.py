@@ -2,6 +2,11 @@ import math
 from jinja2 import Environment, FileSystemLoader
 from datetime import datetime
 import pandas as pd
+from context import cnx
+
+MONTHLY_TRAFFIC_TEMPLATE_FILEPATH = '/Users/kai/repositories/spc/haystack/haystack-score-v2/traffic_metrics/monthly_report/report_template.html'
+# MONTHLY_TRAFFIC_TEMPLATE_FILEPATH = 'report_template.html'
+MONTHLY_TRAFFIC_REPORT_FILEPATH = '/Users/kai/repositories/spc/haystack/haystack-score-v2/traffic_metrics/monthly_report/report.html'
 
 
 # Define the formatNumber filter
@@ -12,12 +17,18 @@ def format_number(value):
 
 
 # Load the HTML template
-env = Environment(loader=FileSystemLoader('.'))
+env = Environment(loader=FileSystemLoader('/'))
 env.filters['formatNumber'] = format_number
-template = env.get_template('report_template.html')
+template = env.get_template(MONTHLY_TRAFFIC_TEMPLATE_FILEPATH)
 
-# Read the traffic metrics CSV file
-traffic_metrics = pd.read_csv('./data/traffic_metrics.csv')
+# Read traffic metrics from DB
+conn = cnx.Cnx
+traffic_metrics = pd.read_sql(
+    '''
+select * from score_v2.similarweb_traffic_metrics
+    ''',
+    conn,
+)
 
 # Sort group by 'lin_curve' and 'exp_curve' columns
 traffic_metrics = traffic_metrics.sort_values(
@@ -30,5 +41,5 @@ date = datetime.now().strftime("%d %b %Y")
 rendered_html = template.render(date=date, data=traffic_metrics)
 
 # Save the rendered HTML to a file
-with open('report.html', 'w') as file:
+with open(MONTHLY_TRAFFIC_REPORT_FILEPATH, 'w') as file:
     file.write(rendered_html)
