@@ -1,7 +1,7 @@
 *.DS_Store
 *.vscode
 *.env
-data/
+_data/
 nb*.ipynb
 *.csv
 *.ipynb_checkpoints
