@@ -7,6 +7,13 @@ nb*.ipynb
 *.ipynb_checkpoints
 *.pyc
 report.html
+!company_list_anz.csv
+!company_list_sea.csv
+!company_list_isr.csv
+!school_list_anz.csv
+!school_list_sea.csv
+!school_list_isr.csv
+!junk_company_ids.csv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
