@@ -2,14 +2,16 @@ import pandas as pd
 from datetime import datetime
 from context import cnx
 from sqlalchemy.orm import sessionmaker
+from dotenv import load_dotenv
+import os
 
-SPC_GEO = 'SEA'
-SCHOOL_LIST_PATH = '/Users/kai/repositories/spc/haystack/haystack-score-v2/data/school_list_{}.csv'.format(
-    SPC_GEO.lower()
-)
+load_dotenv()
+HS_SCORE_V2_DIR = os.getenv("HS_SCORE_V2_DIR")
+SPC_GEO = "SEA"
+SCHOOL_LIST_PATH = HS_SCORE_V2_DIR + "data/school_list_{}.csv".format(SPC_GEO.lower())
 
 
-educations_query = '''
+educations_query = """
     select
          e.degree_name
         , e.education_id
@@ -25,11 +27,11 @@ educations_query = '''
         from score_v2.person_locations
         where spc_geo = '{}'
         )
-'''.format(
+""".format(
     SPC_GEO
 )
 
-delete_education_score_query = '''
+delete_education_score_query = """
     DO
     $$
     BEGIN
@@ -43,53 +45,53 @@ delete_education_score_query = '''
         END IF;
     END
     $$
-'''.format(
+""".format(
     SPC_GEO
 )
 
 
 def calc_education_score(row):
-    if row['is_irrelevant']:
+    if row["is_irrelevant"]:
         return 0
 
     education_score = 0
-    if row['is_tier_school']:
+    if row["is_tier_school"]:
         education_score += 1
 
-    if row['is_phd'] or row['is_masters']:
+    if row["is_phd"] or row["is_masters"]:
         education_score *= 2
 
     return education_score
 
 
-if __name__ == '__main__':
-    print('[{}] Starting education_score_{}.py'.format(datetime.now(), SPC_GEO))
+if __name__ == "__main__":
+    print("[{}] Starting education_score_{}.py".format(datetime.now(), SPC_GEO))
     conn = cnx.Cnx
 
     # pull educations with flags and school names
-    print('[{}] Pulling educations'.format(datetime.now()))
+    print("[{}] Pulling educations".format(datetime.now()))
     raw_educations = pd.read_sql_query(educations_query, conn)
     print(
-        '[{}] Done pulling educations. Pulled: {}'.format(
+        "[{}] Done pulling educations. Pulled: {}".format(
             datetime.now(), len(raw_educations)
         )
     )
     educations = raw_educations.copy()
 
-    print('[{}] Cleaning data'.format(datetime.now()))
+    print("[{}] Cleaning data".format(datetime.now()))
 
     # check if school_name is in tier list
     school_df = pd.read_csv(SCHOOL_LIST_PATH)
-    school_list = school_df['school_name'].str.lower().tolist()
-    educations['is_tier_school'] = (
-        educations['school_name'].str.lower().isin(school_list)
+    school_list = school_df["school_name"].str.lower().tolist()
+    educations["is_tier_school"] = (
+        educations["school_name"].str.lower().isin(school_list)
     )
 
-    print('[{}] Calculating education score'.format(datetime.now()))
-    educations['education_score'] = educations.apply(calc_education_score, axis=1)
+    print("[{}] Calculating education score".format(datetime.now()))
+    educations["education_score"] = educations.apply(calc_education_score, axis=1)
 
     # write to db
-    print('[{}] Deleting old {} education scores'.format(datetime.now(), SPC_GEO))
+    print("[{}] Deleting old {} education scores".format(datetime.now(), SPC_GEO))
     try:
         session = sessionmaker(bind=conn)()
         session.execute(delete_education_score_query)
@@ -100,11 +102,11 @@ if __name__ == '__main__':
     finally:
         session.close()
 
-    print('[{}] Writing to db'.format(datetime.now()))
-    to_write = educations[['education_id', 'education_score']]
-    to_write['generated_at'] = datetime.now()
-    to_write['spc_geo'] = SPC_GEO
+    print("[{}] Writing to db".format(datetime.now()))
+    to_write = educations[["education_id", "education_score"]]
+    to_write["generated_at"] = datetime.now()
+    to_write["spc_geo"] = SPC_GEO
     write_res = to_write.to_sql(
-        'education_scores', conn, if_exists='append', index=False, schema='score_v2'
+        "education_scores", conn, if_exists="append", index=False, schema="score_v2"
     )
-    print('[{}] Done writing to db'.format(datetime.now()))
+    print("[{}] Done writing to db".format(datetime.now()))

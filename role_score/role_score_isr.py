@@ -2,11 +2,13 @@ import pandas as pd
 from datetime import datetime
 from context import cnx
 from sqlalchemy.orm import sessionmaker
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
+HS_SCORE_V2_DIR = os.getenv("HS_SCORE_V2_DIR")
 SPC_GEO = "ISR"
-COMPANY_LIST_PATH = "/Users/kai/repositories/spc/haystack/haystack-score-v2/data/company_list_{}.csv".format(
-    SPC_GEO.lower()
-)
+COMPANY_LIST_PATH = HS_SCORE_V2_DIR + "data/company_list_{}.csv".format(SPC_GEO.lower())
 
 roles_query = """
     select

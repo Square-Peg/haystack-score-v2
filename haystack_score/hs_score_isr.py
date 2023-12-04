@@ -5,13 +5,15 @@ import sys
 from datetime import datetime, timedelta
 from context import cnx
 from sqlalchemy.orm import sessionmaker
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
+HS_SCORE_V2_DIR = os.getenv("HS_SCORE_V2_DIR")
 SPC_GEO = "ISR"
 CURRENT_DATE = datetime.now().strftime("%Y%m%d")
 CURRENT_DATE_WITH_DASH = datetime.now().strftime("%Y-%m-%d")
-JUNK_COMPANY_ID_FILEPATH = (
-    "/Users/kai/repositories/spc/haystack/haystack-score-v2/data/junk_company_ids.csv"
-)
+JUNK_COMPANY_ID_FILEPATH = HS_SCORE_V2_DIR + "data/junk_company_ids.csv"
 
 hs_company_query = """
     select 
