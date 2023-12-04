@@ -9,26 +9,13 @@ from dotenv import load_dotenv
 from scipy.optimize import curve_fit
 from scipy.stats import linregress
 from tqdm import tqdm
+from context import cnx
+
 
 # Load environment variables
 load_dotenv()
-POSTGRES_USER = os.getenv("POSTGRES_USER")
-POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD")
-POSTGRES_HOST = os.getenv("POSTGRES_HOST")
-POSTGRES_PORT = os.getenv("POSTGRES_PORT")
-POSTGRES_DBNAME = os.getenv("POSTGRES_DBNAME")
 HS_SCORE_V2_DIR = os.getenv("HS_SCORE_V2_DIR")
 
-# Connection engine
-postgresStr = "postgresql://{username}:{password}@{host}:{port}/{dbname}".format(
-    username=POSTGRES_USER,
-    password=POSTGRES_PASSWORD,
-    host=POSTGRES_HOST,
-    port=POSTGRES_PORT,
-    dbname=POSTGRES_DBNAME,
-)
-# Create the connection
-cnx = sqlalchemy.create_engine(postgresStr)
 
 # Pull data from traffic
 traffic_data_query = """
@@ -44,8 +31,9 @@ where t.domain in (
 
 if __name__ == "__main__":
     print("Pulling traffic data...")
+    conn = cnx.Cnx
 
-    raw_traffic = pd.read_sql(traffic_data_query, cnx)
+    raw_traffic = pd.read_sql(traffic_data_query, conn)
 
     print("Cleaning traffic data...")
     # Select only domains that have had more than 10k visits in the last 3 months
@@ -267,7 +255,7 @@ if __name__ == "__main__":
         left join crm_geo geo on geo.affinity_organisation_id = crme.affinity_organisation_id
         WHERE website IN %(domains)s
     """,
-        con=cnx,
+        con=conn,
         params={"domains": tuple(domain_list)},
     )
 
