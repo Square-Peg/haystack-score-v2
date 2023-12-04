@@ -17,6 +17,7 @@ POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD")
 POSTGRES_HOST = os.getenv("POSTGRES_HOST")
 POSTGRES_PORT = os.getenv("POSTGRES_PORT")
 POSTGRES_DBNAME = os.getenv("POSTGRES_DBNAME")
+HS_SCORE_V2_DIR = os.getenv("HS_SCORE_V2_DIR")
 
 # Connection engine
 postgresStr = "postgresql://{username}:{password}@{host}:{port}/{dbname}".format(
@@ -199,9 +200,8 @@ if __name__ == "__main__":
 
         # Save the plot
         plt.savefig(
-            "/Users/kai/repositories/spc/haystack/haystack-score-v2/_reengagement_traffic_report/charts/{}.png".format(
-                domain
-            )
+            HS_SCORE_V2_DIR
+            + "_reengagement_traffic_report/charts/{}.png".format(domain)
         )
         plt.clf()
         plt.close()
@@ -304,7 +304,8 @@ if __name__ == "__main__":
     # write to csv
     current_date = pd.to_datetime("today").strftime("%Y%m%d")
     final_df.to_csv(
-        "/Users/kai/repositories/spc/haystack/haystack-score-v2/_reengagement_traffic_report/reengagement_metrics_{}.csv".format(
+        HS_SCORE_V2_DIR
+        + "_reengagement_traffic_report/reengagement_metrics_{}.csv".format(
             current_date
         ),
         index=False,

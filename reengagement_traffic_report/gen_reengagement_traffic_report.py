@@ -1,9 +1,13 @@
 import math
-from jinja2 import Environment, FileSystemLoader
+import os
 from datetime import datetime
-import pandas as pd
 
-HS_SCORE_V2_DIR = "/Users/kai/repositories/spc/haystack/haystack-score-v2/"
+import pandas as pd
+from dotenv import load_dotenv
+from jinja2 import Environment, FileSystemLoader
+
+load_dotenv()
+HS_SCORE_V2_DIR = os.getenv("HS_SCORE_V2_DIR")
 
 
 # Define the formatNumber filter
@@ -21,7 +25,8 @@ template = env.get_template("/reengagement_traffic_report/report_template.html")
 # Read the traffic metrics CSV file
 current_date = datetime.now().strftime("%Y%m%d")
 traffic_metrics = pd.read_csv(
-    "/Users/kai/repositories/spc/haystack/haystack-score-v2/_reengagement_traffic_report/metrics/reengagement_metrics_{}.csv".format(
+    HS_SCORE_V2_DIR
+    + "_reengagement_traffic_report/metrics/reengagement_metrics_{}.csv".format(
         current_date
     )
 )
@@ -38,7 +43,8 @@ rendered_html = template.render(date=date, data=traffic_metrics)
 
 # Save the rendered HTML to a file
 with open(
-    "/Users/kai/repositories/spc/haystack/haystack-score-v2/_reengagement_traffic_report/reports/reengagement_report_{}.html".format(
+    HS_SCORE_V2_DIR
+    + "_reengagement_traffic_report/reports/reengagement_report_{}.html".format(
         current_date
     ),
     "w",
