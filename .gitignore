@@ -6,6 +6,7 @@ nb*.ipynb
 *.csv
 *.ipynb_checkpoints
 *.pyc
+*.png
 report.html
 !company_list_anz.csv
 !company_list_sea.csv
