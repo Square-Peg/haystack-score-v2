@@ -14,3 +14,5 @@ echo '[CONSOLE] executing person_flags.py'
 python flags/person_flags.py
 echo '[CONSOLE] executing company_flags.py'
 python flags/company_flags.py
+echo '[CONSOLE] executing get_sw_url_list.py'
+python sw_url_list/get_sw_url_list.py
