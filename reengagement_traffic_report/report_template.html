@@ -109,7 +109,7 @@
                 <td data-sort-value="{{ row[1]['high_priority'] }}">{{ row[1]['high_priority'] }}</td>
 
                 <td class="chart-cell" id="chart-{{ loop.index0 }}">
-                    <img class="chart" src="./data/charts/{{ row[1]['domain'] }}.png">
+                    <img class="chart" src="/Users/kai/repositories/spc/haystack/haystack-score-v2/_reengagement_traffic_report/charts/{{ row[1]['domain'] }}.png">
                 </td>
                 <td>
                     <button onclick="toggleChart({{ loop.index0 }})">Toggle Chart</button>
@@ -119,5 +119,5 @@
         </tbody>
     </table>
 </body>
-<script src="report_script.js"></script>
+<script src="/Users/kai/repositories/spc/haystack/haystack-score-v2/reengagement_traffic_report/report_script.js"></script>
 </html>
