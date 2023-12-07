@@ -1,6 +1,6 @@
 pandas
 numpy
 sqlalchemy
-dotenv
+python-dotenv
 psycopg2
 tqdm
