@@ -293,7 +293,7 @@ if __name__ == "__main__":
     current_date = pd.to_datetime("today").strftime("%Y%m%d")
     final_df.to_csv(
         HS_SCORE_V2_DIR
-        + "_reengagement_traffic_report/reengagement_metrics_{}.csv".format(
+        + "_reengagement_traffic_report/metrics/reengagement_metrics_{}.csv".format(
             current_date
         ),
         index=False,
