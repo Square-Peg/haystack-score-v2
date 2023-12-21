@@ -137,6 +137,12 @@ if __name__ == "__main__":
     # generate notes
     print("[{}] Generating notes...".format(datetime.now()))
     stealth = raw_stealth.copy()
+
+    # if there are no rows, return early
+    if len(stealth) == 0:
+        print("[{}] No rows to process. Exiting.".format(datetime.now()))
+        exit()
+
     stealth["notes"] = stealth.apply(create_stealth_note_string, axis=1)
     print("[{}] Done generating notes.".format(datetime.now()))
 

@@ -102,8 +102,10 @@ if __name__ == "__main__":
     print("[{}] Formatting affinity upload...".format(datetime.now()))
     affinity_upload = hs_weekly.sort_values("hs_score_v2", ascending=False).head(40)
 
-    print(affinity_upload)
-    print(affinity_upload.columns)
+    # if there are no rows, return early
+    if len(affinity_upload) == 0:
+        print("[{}] No rows to process. Exiting.".format(datetime.now()))
+        exit()
 
     affinity_upload_final = affinity_upload[
         ["company_name", "primary_url", "notes", "company_id"]
